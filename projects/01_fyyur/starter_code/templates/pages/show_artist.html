@@ -44,6 +44,11 @@
 	</div>
 </div>
 <section>
+	<h3>
+		<a href="/artists/{{ artist.id }}/edit"><button class="btn btn-primary btn-lg">Edit Artist</button></a>
+	</h3>
+</section>
+<section>
 	<h2 class="monospace">{{ artist.upcoming_shows_count }} Upcoming {% if artist.upcoming_shows_count == 1 %}Show{% else %}Shows{% endif %}</h2>
 	<div class="row">
 		{%for show in artist.upcoming_shows %}

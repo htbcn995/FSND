@@ -15,6 +15,8 @@ from forms import *
 from flask_migrate import Migrate
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime
+from models import db, Venue, Artist, Show
+from flask_wtf.csrf import CSRFProtect
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -22,62 +24,12 @@ from datetime import datetime
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
-
+#db = SQLAlchemy(app)
+csrf = CSRFProtect(app)
 # TODO: connect to a local postgresql database
 db.init_app(app)
 
 migrate = Migrate(app, db)
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
-
-class Venue(db.Model):
-    __tablename__ = 'Venue'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    address = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120), nullable=False)
-    image_link = db.Column(db.String(500))
-    website = db.Column(db.String(120))
-    facebook_link = db.Column(db.String(120))
-    genres = db.Column(JSON, nullable=False)
-    seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
-    seeking_description = db.Column(db.String(500))
-    shows = db.relationship("Show", backref="venue", cascade="all, delete-orphan", lazy=True)
-    
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120), nullable=False)
-    genres = db.Column(JSON, nullable=False)
-    image_link = db.Column(db.String(500))
-    website = db.Column(db.String(120))
-    facebook_link = db.Column(db.String(120))
-    seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
-    seeking_description = db.Column(db.String(500))
-    shows = db.relationship('Show', backref='artist', lazy=True)
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
-class Show(db.Model):
-    __tablename__ = 'Show'
-    id = db.Column(db.Integer, primary_key=True)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), primary_key=True)
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), primary_key=True)
-    start_time = db.Column(db.DateTime, nullable=False)
-   
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -204,6 +156,17 @@ def show_venue(venue_id):
   data["upcoming_shows_count"] = len(upcoming_shows)
   data["past_shows_count"] = len(past_shows)
 
+  #previously performed artists
+  artists = db.session.query(Artist).join(Show).filter(Show.venue_id==venue.id,
+  Show.start_time < datetime.now()).all()
+  artists_performed = []
+  for artist in artists:
+    artist_dic = {
+      "name" : artist.name,
+      "id" : artist.id
+    }
+    artists_performed.append(artist_dic)
+  data["artists_performed"] = artists_performed
   return render_template('pages/show_venue.html', venue=data)
 
 #  Create Venue
@@ -241,26 +204,26 @@ def create_venue_submission():
         flash('error : ' + form.data["name"] + 'could not be listed.')
       finally:
         db.session.close()
-      return render_template('pages/home.html')
+      return render_template('/pages/home.html')
 
 #Delete Venue record
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
-  error = False
+
   try:
     venue = Venue.query.get(venue_id)
+    name = venue.name
     db.session.delete(venue)
     db.session.commit()
+    flash(name + ' is deleted.')
   except:
     db.session.rollback()
-    error = True
+    flash(name + ' could not be deleteed.')
+
   finally:
     db.session.close()
-  if error:
-    abort(500)
-  else:
-    flash('Venue was deleted.')
-    return jsonify({'succecc': True})
+
+    return jsonify({'success':True})
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -333,6 +296,18 @@ def show_artist(artist_id):
   data["past_shows"] = past_shows
   data["upcoming_shows_count"] = len(upcoming_shows)
   data["past_shows_count"] = len(past_shows)
+
+  #previously performed venues
+  venues = db.session.query(Venue).join(Show).filter(Show.artist_id==artist.id,
+  Show.start_time < datetime.now()).all()
+  venues_performed = []
+  for venue in venues:
+    venue_dic = {
+      "name" : venue.name,
+      "id" : venue.id
+    }
+    venues_performed.append(venue_dic)
+  data["venues_performed"] = venues_performed
 
   return render_template('pages/show_artist.html', artist=data)
 

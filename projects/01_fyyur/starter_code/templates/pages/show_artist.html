@@ -49,6 +49,16 @@
 	</h3>
 </section>
 <section>
+	<h2 class="monospace">Past played venues</h2>
+	<div class="row">
+		{%for venue in artist.venues_performed %}
+		<div class="col-sm-4">
+				<h3><a href="/venue/{{ venue.id }}">{{venue.name }}</a></h3>
+		</div>
+		{% endfor %}
+	</div>
+</section>
+<section>
 	<h2 class="monospace">{{ artist.upcoming_shows_count }} Upcoming {% if artist.upcoming_shows_count == 1 %}Show{% else %}Shows{% endif %}</h2>
 	<div class="row">
 		{%for show in artist.upcoming_shows %}

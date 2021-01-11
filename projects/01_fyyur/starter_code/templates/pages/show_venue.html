@@ -1,7 +1,7 @@
 {% extends 'layouts/main.html' %}
 {% block title %}Venue Search{% endblock %}
 {% block content %}
-<div class="row">
+<div class="row">>
 	<div class="col-sm-6">
 		<h1 class="monospace">
 			{{ venue.name }}
@@ -49,17 +49,31 @@
 <section>
 	<h3>
 		<a href="/venues/{{ venue.id }}/edit"><button class="btn btn-primary btn-lg">Edit Venue</button></a>
-		<a id="delete_venue" href=""><button class="btn btn-primary btn-lg">Delete Venue</button></a>
-	</h3>
+		<a id="delete_venue" href=""><button class="btn btn-primary btn-lg">Delete Venue</button></a> 
+		
 	<script>
+		var csrf_token = "{{ csrf_token() }}"
 		document.getElementById("delete_venue").addEventListener("click", deleteVenue);
 		function deleteVenue() {
 			fetch("/venues/{{ venue.id }}", {
-				method: 'DELETE',
-			}).then(response => {window.location.href = "/" ;})
+				method: "DELETE",
+				headers: {
+					 'X_CSRFToken': csrf_token
+				}
+			}).then(response => {window.location.href = "/venues"})
 		}
 
 	</script>
+</section>
+<section>
+	<h2 class="monospace">Past played artist</h2>
+	<div class="row">
+		{%for artist in venue.artists_performed %}
+		<div class="col-sm-4">
+				<h3><a href="/artists/{{ artist.id }}">{{ artist.name }}</a></h3>
+		</div>
+		{% endfor %}
+	</div>
 </section>
 <section>
 	<h2 class="monospace">{{ venue.upcoming_shows_count }} Upcoming {% if venue.upcoming_shows_count == 1 %}Show{% else %}Shows{% endif %}</h2>
